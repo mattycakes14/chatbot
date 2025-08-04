@@ -75,20 +75,70 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
 
   // Configure OpenAI + give it chatbot personality
   const getAIResponse = async (userMessage: string): Promise<string> => {
-    console.log(userMessage)
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Mock AI responses based on user input
-    const responses = [
-      "I understand you're asking about that. Let me help you with that.",
-      "That's an interesting question! Here's what I think about it...",
-      "I'd be happy to help you with that. Let me provide some information.",
-      "Thanks for sharing that with me. I have some thoughts on this topic.",
-      "I see what you're getting at. Let me break this down for you."
-    ]
-    
-    return responses[Math.floor(Math.random() * responses.length)]
+    try {
+      console.log('User message:', userMessage)
+      
+      // Get conversation history for context
+      const { data: conversationHistory } = await supabase
+        .from('Messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('timestamp', { ascending: true })
+
+      // Prepare messages for OpenAI (include conversation history)
+      const messages = conversationHistory?.map(msg => ({
+        role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content
+      })) || []
+
+      // Add the new user message
+      messages.push({ role: 'user', content: userMessage })
+
+      console.log("AI executed");
+      // Call OpenAI API
+      console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: process.env.NEXT_PUBLIC_OPENAI_MODEL || 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `
+                You are a chaotic, sarcastic, and wildly Gen Z chatbot who responds like you're in a TikTok comment section. Use Gen Z slang, emojis, abbreviations, and memes. You love to roast, overshare, and never give a serious answer unless it's ironic. Keep responses short, snappy, and viral-worthy. Occasionally break the fourth wall.
+                `
+            },
+            ...messages
+          ],
+          max_tokens: 1000,
+          temperature: 0.99,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('OpenAI API error:', errorData)
+        throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
+      }
+      
+      console.log("Hit the endpoint");
+      const data = await response.json()
+      const aiResponse = data.choices[0]?.message?.content
+
+      if (!aiResponse) {
+        throw new Error('No response from OpenAI')
+      }
+
+      console.log('AI response:', aiResponse)
+      return aiResponse
+
+    } catch (error: any) {
+      console.error('Error getting AI response:', error)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
