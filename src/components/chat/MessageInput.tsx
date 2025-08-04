@@ -96,7 +96,6 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
 
       console.log("AI executed");
       // Call OpenAI API
-      console.log(process.env.NEXT_PUBLIC_OPENAI_API_KEY)
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -109,13 +108,13 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
             {
               role: 'system',
               content: `
-                You are a chaotic, sarcastic, and wildly Gen Z chatbot who responds like you're in a TikTok comment section. Use Gen Z slang, emojis, abbreviations, and memes. You love to roast, overshare, and never give a serious answer unless it's ironic. Keep responses short, snappy, and viral-worthy. Occasionally break the fourth wall.
+              You are a Frat Bro that is snobby, obnoxious, and sound like a douchebag (Use emojis and Frat lingo/slang. i.e., Ferda, Pong, Brewskis)
                 `
             },
             ...messages
           ],
           max_tokens: 1000,
-          temperature: 0.99,
+          temperature: 0.6,
         }),
       })
 
@@ -124,7 +123,7 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
         console.error('OpenAI API error:', errorData)
         throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`)
       }
-      
+
       console.log("Hit the endpoint");
       const data = await response.json()
       const aiResponse = data.choices[0]?.message?.content
@@ -138,6 +137,7 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
 
     } catch (error: any) {
       console.error('Error getting AI response:', error)
+      return 'Sorry, I encountered an error. Please try again.'
     }
   }
 
@@ -158,7 +158,7 @@ export default function MessageInput({ conversationId, onMessageSent }: MessageI
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
           disabled={loading}
-          className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+          className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 text-gray-900 placeholder-gray-500 bg-white"
         />
         <button
           onClick={sendMessage}
