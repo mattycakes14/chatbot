@@ -4,10 +4,9 @@ export async function testDatabaseConnection() {
   const supabase = createClient()
   
   try {
-    // Test if we can connect to the database
     console.log('Testing database connection...')
     
-    // Try to select from Users table
+    // Try to access Users table
     const { data: users, error: usersError } = await supabase
       .from('Users')
       .select('*')
@@ -21,7 +20,7 @@ export async function testDatabaseConnection() {
     console.log('Users table accessible, found', users?.length || 0, 'users')
     
     // Try to get table schema info
-    const { data: schema, error: schemaError } = await supabase
+    const { data: _schema, error: schemaError } = await supabase
       .from('Users')
       .select('*')
       .limit(0)
@@ -34,9 +33,9 @@ export async function testDatabaseConnection() {
     
     return { success: true, users: users?.length || 0 }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Database connection test failed:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 
@@ -73,8 +72,8 @@ export async function testUserInsert() {
     
     return { success: true, data }
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('User insert test failed:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 } 

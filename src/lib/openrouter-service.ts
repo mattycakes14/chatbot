@@ -25,7 +25,6 @@ export class OpenRouterService {
     this.baseUrl = config.baseUrl || 'https://openrouter.ai/api/v1'
   }
 
-  // Get available models from OpenRouter
   async getAvailableModels() {
     try {
       const response = await fetch(`${this.baseUrl}/models`, {
@@ -36,12 +35,12 @@ export class OpenRouterService {
       })
 
       if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`)
+        throw new Error(`Failed to fetch models: ${response.status}`)
       }
 
       const data = await response.json()
       return data.data || []
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching OpenRouter models:', error)
       return []
     }
@@ -97,11 +96,11 @@ export class OpenRouterService {
         model: data.model,
         usage: data.usage,
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('OpenRouter API error:', error)
       return {
         content: 'Sorry, I encountered an error. Please try again.',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   }
@@ -128,7 +127,7 @@ export class OpenRouterService {
   }
 
   // Mock response for development/testing
-  async getMockResponse(userMessage: string): Promise<OpenRouterResponse> {
+  async getMockResponse(_userMessage: string): Promise<OpenRouterResponse> {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     const responses = [
