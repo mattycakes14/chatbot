@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase'
 import { Conversation, Message } from '@/lib/database'
 import MessageInput from '@/components/chat/MessageInput'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { MessageEncryption } from '@/lib/encryption'
 
 export default function ChatPage() {
   const { user, signOut } = useAuth() // handles user auth session
@@ -65,7 +66,7 @@ export default function ChatPage() {
       // set state for conversations from data
       setConversations(data || [])
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading conversations:', error)
       setError('Failed to load conversations')
     } finally {
@@ -73,7 +74,7 @@ export default function ChatPage() {
     }
   }
 
-  // Load messages for selected conversation with pagination
+  // Load messages for selected conversation with pagination and decryption
   const loadMessages = async (conversationId: string, pageNum: number = 1, reset: boolean = false) => {
     try {
       setLoadingMore(true)
@@ -99,18 +100,24 @@ export default function ChatPage() {
 
       if (error) throw error
       
+      // Decrypt messages before setting state
+      const decryptedMessages = (data || []).map(message => ({
+        ...message,
+        content: MessageEncryption.decryptMessage(message.content)
+      }))
+      
       if (reset) {
         // Reset messages for new conversation
-        setMessages(data || [])
+        setMessages(decryptedMessages)
       } else {
         // Append messages for pagination
-        setMessages(prev => [...(data || []), ...prev])
+        setMessages(prev => [...decryptedMessages, ...prev])
       }
 
       // Check if there are more messages to load
       setHasMore((data?.length || 0) === MESSAGES_PER_PAGE && (offset + MESSAGES_PER_PAGE) < (count || 0))
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading messages:', error)
       setError('Failed to load messages')
     } finally {
@@ -162,7 +169,7 @@ export default function ChatPage() {
       if (data) {
         handleConversationSelect(data)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating conversation:', error)
       setError('Failed to create new conversation')
     }
@@ -183,7 +190,7 @@ export default function ChatPage() {
       
       // Reload conversations to show updated topic
       await loadConversations()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating conversation topic:', error)
     }
   }
@@ -224,7 +231,7 @@ export default function ChatPage() {
       // Reload conversations
       await loadConversations()
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting conversation:', error)
       setError('Failed to delete conversation')
     }
@@ -232,8 +239,10 @@ export default function ChatPage() {
 
   // Handle new message sent
   const handleMessageSent = (message: Message) => {
+    // Add message to local state (already decrypted from MessageInput)
     setMessages(prev => [...prev, message])
-    // Scroll to bottom after a short delay to ensure the message is rendered
+    
+    // Scroll to bottom after a short delay to ensure DOM is updated
     setTimeout(scrollToBottom, 100)
   }
 
