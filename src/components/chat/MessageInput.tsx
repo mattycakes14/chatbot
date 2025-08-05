@@ -232,7 +232,7 @@ export default function MessageInput({
           {loading ? (
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>{aiTyping ? 'AI typing...' : 'Sending...'}</span>
+              <span>{aiTyping ? 'Chad is typing...' : 'Sending...'}</span>
             </div>
           ) : (
             'Send'
@@ -245,7 +245,7 @@ export default function MessageInput({
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          <span>AI is thinking...</span>
+          <span>Chad is thinking...</span>
         </div>
       )}
     </div>
