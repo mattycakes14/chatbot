@@ -1,7 +1,7 @@
 // Simple encryption utility for message content
 
 export class MessageEncryption {
-  private static readonly SECRET_KEY = 'your-secret-key-2024' // In production, use environment variable
+  private static readonly SECRET_KEY = process.env.SECRET_KEY // In production, use environment variable
   
   // Unicode-safe base64 encoding
   private static unicodeToBase64(str: string): string {
