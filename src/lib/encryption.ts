@@ -1,7 +1,7 @@
 // Simple encryption utility for message content
 
 export class MessageEncryption {
-  private static readonly SECRET_KEY = process.env.SECRET_KEY // In production, use environment variable
+  private static readonly SECRET_KEY = process.env.SECRET_KEY || 'your-secret-key-2024' // In production, use environment variable
   
   // Unicode-safe base64 encoding
   private static unicodeToBase64(str: string): string {
@@ -18,10 +18,13 @@ export class MessageEncryption {
     try {
       if (!content) return content
       
+      // Ensure SECRET_KEY is defined
+      const secretKey = this.SECRET_KEY || 'fallback-key'
+      
       // Simple XOR encryption with the secret key
       let encrypted = ''
       for (let i = 0; i < content.length; i++) {
-        const charCode = content.charCodeAt(i) ^ this.SECRET_KEY.charCodeAt(i % this.SECRET_KEY.length)
+        const charCode = content.charCodeAt(i) ^ secretKey.charCodeAt(i % secretKey.length)
         encrypted += String.fromCharCode(charCode)
       }
       
@@ -37,13 +40,16 @@ export class MessageEncryption {
     try {
       if (!encryptedContent) return encryptedContent
       
+      // Ensure SECRET_KEY is defined
+      const secretKey = this.SECRET_KEY || 'fallback-key'
+      
       // Convert from base64 (Unicode-safe)
       const encrypted = this.base64ToUnicode(encryptedContent)
       
       // Simple XOR decryption
       let decrypted = ''
       for (let i = 0; i < encrypted.length; i++) {
-        const charCode = encrypted.charCodeAt(i) ^ this.SECRET_KEY.charCodeAt(i % this.SECRET_KEY.length)
+        const charCode = encrypted.charCodeAt(i) ^ secretKey.charCodeAt(i % secretKey.length)
         decrypted += String.fromCharCode(charCode)
       }
       
