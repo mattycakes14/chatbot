@@ -18,7 +18,7 @@ export interface Message {
   conversation_id: string
   timestamp: string
   sender: string
-  content: string
+  content: string // This will now store encrypted content
 }
 
 // Get user by ID
@@ -61,7 +61,7 @@ export async function createConversation(userId: string, topic: string) {
   return { data, error }
 }
 
-// Get messages for a conversation
+// Get messages for a conversation (with decryption)
 export async function getConversationMessages(conversationId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
@@ -70,18 +70,34 @@ export async function getConversationMessages(conversationId: string) {
     .eq('conversation_id', conversationId)
     .order('timestamp', { ascending: true })
   
-  return { data, error }
+  if (error) return { data: null, error }
+  
+  // Decrypt messages
+  const { MessageEncryption } = await import('./encryption')
+  const decryptedMessages = data?.map(message => ({
+    ...message,
+    content: MessageEncryption.decryptMessage(message.content)
+  })) || []
+  
+  return { data: decryptedMessages, error: null }
 }
 
-// Add message to conversation
+// Add message to conversation with encryption
 export async function addMessage(conversationId: string, sender: string, content: string) {
   const supabase = createClient()
+  
+  // Import encryption utility
+  const { MessageEncryption } = await import('./encryption')
+  
+  // Encrypt content before storing
+  const encryptedContent = MessageEncryption.encryptMessage(content)
+  
   const { data, error } = await supabase
     .from('Messages')
     .insert({
       conversation_id: conversationId,
       sender,
-      content,
+      content: encryptedContent, // Store encrypted content directly
       timestamp: new Date().toISOString(),
     })
     .select()

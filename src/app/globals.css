@@ -1,3 +1,4 @@
+/* Tailwind confi*uration and Styles */ 
 @import "tailwindcss";
 
 :root {
@@ -23,4 +24,45 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom animations for typing indicators */
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-typing {
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.animate-typing:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.animate-typing:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Smooth transitions for loading states */
+.transition-loading {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Pulse animation for progress bar */
+@keyframes pulse-progress {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-progress {
+  animation: pulse-progress 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

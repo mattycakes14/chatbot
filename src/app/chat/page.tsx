@@ -1,11 +1,13 @@
 'use client'
 
+// Handles conversation, messages, and pagination for chat page
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { Conversation, Message } from '@/lib/database'
 import MessageInput from '@/components/chat/MessageInput'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 export default function ChatPage() {
   const { user, signOut } = useAuth() // handles user auth session
@@ -14,7 +16,20 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]) // messages state
   const [loading, setLoading] = useState(true) // loading state
   const [error, setError] = useState<string | null>(null) // error state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false) // delete dialog state
+  const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null) // conversation to delete
   const supabase = createClient() // supabase client
+  const [aiTyping, setAiTyping] = useState(false)
+
+  // Pagination state
+  const [page, setPage] = useState(1) // page number 
+  const [hasMore, setHasMore] = useState(true) // has more messages
+  const [loadingMore, setLoadingMore] = useState(false) 
+  const [totalMessages, setTotalMessages] = useState(0)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+
+  const MESSAGES_PER_PAGE = 50 // messages per page
 
   // Load user's conversations
   useEffect(() => {
@@ -23,7 +38,17 @@ export default function ChatPage() {
     }
   }, [user])
 
-  // on change of user, load conversations
+  // Reset pagination when conversation changes
+  useEffect(() => {
+    if (selectedConversation) {
+      setPage(1) // reset page number
+      setHasMore(true) // reset has more messages
+      setMessages([]) // reset messages 
+      loadMessages(selectedConversation.id, 1, true) // load messages for selected conversation
+    }
+  }, [selectedConversation])
+
+  // on change of user, load conversations for corresponding user
   const loadConversations = async () => {
     try {
       setLoading(true)
@@ -48,46 +73,83 @@ export default function ChatPage() {
     }
   }
 
-  // Load messages for selected conversation
-  const loadMessages = async (conversationId: string) => {
+  // Load messages for selected conversation with pagination
+  const loadMessages = async (conversationId: string, pageNum: number = 1, reset: boolean = false) => {
     try {
-      // fetch every message and column for correspond conversation_id
+      setLoadingMore(true)
+      
+      // Calculate offset for pagination (index to start from for next batch of messages)
+      const offset = (pageNum - 1) * MESSAGES_PER_PAGE
+      
+      // Get total count first
+      const { count } = await supabase
+        .from('Messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId)
+
+      setTotalMessages(count || 0)
+
+      // fetch messages with pagination
       const { data, error } = await supabase
         .from('Messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('timestamp', { ascending: true })
+        .range(offset, offset + MESSAGES_PER_PAGE - 1)
 
       if (error) throw error
       
-      // set state for messages from data
-      setMessages(data || [])
+      if (reset) {
+        // Reset messages for new conversation
+        setMessages(data || [])
+      } else {
+        // Append messages for pagination
+        setMessages(prev => [...(data || []), ...prev])
+      }
+
+      // Check if there are more messages to load
+      setHasMore((data?.length || 0) === MESSAGES_PER_PAGE && (offset + MESSAGES_PER_PAGE) < (count || 0))
 
     } catch (error: any) {
       console.error('Error loading messages:', error)
       setError('Failed to load messages')
+    } finally {
+      setLoadingMore(false)
     }
+  }
+
+  // Load more messages (for pagination)
+  const loadMoreMessages = async () => {
+    if (!selectedConversation || loadingMore || !hasMore) return
+
+    const nextPage = page + 1
+    setPage(nextPage) // set next page number
+    await loadMessages(selectedConversation.id, nextPage, false) // recalculate message offset
+  }
+
+  // Scroll to bottom when new messages are added
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // Handle conversation selection
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation)
-    loadMessages(conversation.id)
   }
 
   // Create new conversation
   const createNewConversation = async () => {
-    console.log('Creating new conversation')
-
     if (!user) return
 
     try {
+      console.log('Creating new conversation')
+      
       // insert new record into 'Conversations' table
       const { data, error } = await supabase
         .from('Conversations')
         .insert({
           user_id: user.id,
-          conversation_topic: 'New Conversation',
+          conversation_topic: 'New Conversation', // This will be updated after first message
           created_at: new Date().toISOString(),
         })
         .select()
@@ -106,9 +168,89 @@ export default function ChatPage() {
     }
   }
 
-  // Handle new message sent (passed down to MessageInput component)
+  // Update conversation topic with first message
+  const updateConversationTopic = async (conversationId: string, firstMessage: string) => {
+    try {
+      // Truncate the message to a reasonable length for the topic
+      const topic = firstMessage.length > 50 ? firstMessage.substring(0, 47) + '...' : firstMessage
+      
+      const { error } = await supabase
+        .from('Conversations')
+        .update({ conversation_topic: topic })
+        .eq('id', conversationId)
+
+      if (error) throw error
+      
+      // Reload conversations to show updated topic
+      await loadConversations()
+    } catch (error: any) {
+      console.error('Error updating conversation topic:', error)
+    }
+  }
+
+  // Handle conversation deletion
+  const handleDeleteConversation = (conversation: Conversation) => {
+    setConversationToDelete(conversation)
+    setShowDeleteDialog(true)
+  }
+
+  // Confirm and execute conversation deletion
+  const confirmDeleteConversation = async () => {
+    if (!conversationToDelete) return
+
+    try {
+      // Delete all messages in the conversation first
+      const { error: messagesError } = await supabase
+        .from('Messages')
+        .delete()
+        .eq('conversation_id', conversationToDelete.id)
+
+      if (messagesError) throw messagesError
+
+      // Then delete the conversation
+      const { error: conversationError } = await supabase
+        .from('Conversations')
+        .delete()
+        .eq('id', conversationToDelete.id)
+
+      if (conversationError) throw conversationError
+
+      // Clear selected conversation if it was the one deleted
+      if (selectedConversation?.id === conversationToDelete.id) {
+        setSelectedConversation(null)
+        setMessages([])
+      }
+
+      // Reload conversations
+      await loadConversations()
+      
+    } catch (error: any) {
+      console.error('Error deleting conversation:', error)
+      setError('Failed to delete conversation')
+    }
+  }
+
+  // Handle new message sent
   const handleMessageSent = (message: Message) => {
     setMessages(prev => [...prev, message])
+    // Scroll to bottom after a short delay to ensure the message is rendered
+    setTimeout(scrollToBottom, 100)
+  }
+
+  // Handle AI typing state
+  const handleAiTypingStart = () => {
+    setAiTyping(true)
+  }
+
+  const handleAiTypingStop = () => {
+    setAiTyping(false)
+  }
+
+  // Handle first message to update conversation topic
+  const handleFirstMessage = (firstMessage: string) => {
+    if (selectedConversation) {
+      updateConversationTopic(selectedConversation.id, firstMessage)
+    }
   }
 
   return (
@@ -161,24 +303,41 @@ export default function ChatPage() {
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
-                        {/* For each Conversation record, create a button */}
+                      {/* For each Conversation record, create a button */}
                       {conversations.map((conversation) => (
-                        <button
+                        <div
                           key={conversation.id}
-                          onClick={() => handleConversationSelect(conversation)}
-                          className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
+                          className={`group relative ${
                             selectedConversation?.id === conversation.id
                               ? 'bg-indigo-50 border-r-2 border-indigo-600'
-                              : ''
+                              : 'hover:bg-gray-50'
                           }`}
                         >
-                          <div className="font-medium text-gray-900 truncate">
-                            {conversation.conversation_topic}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(conversation.created_at).toLocaleDateString()}
-                          </div>
-                        </button>
+                          <button
+                            onClick={() => handleConversationSelect(conversation)}
+                            className="w-full text-left p-4 transition-colors"
+                          >
+                            <div className="font-medium text-gray-900 truncate">
+                              {conversation.conversation_topic}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(conversation.created_at).toLocaleDateString()}
+                            </div>
+                          </button>
+                          {/* Delete button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteConversation(conversation)
+                            }}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-800 p-1"
+                            title="Delete conversation"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -197,49 +356,101 @@ export default function ChatPage() {
                       <p className="text-sm text-gray-500">
                         Created {new Date(selectedConversation.created_at).toLocaleDateString()}
                       </p>
+                      {totalMessages > 0 && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {totalMessages} message{totalMessages !== 1 ? 's' : ''} total
+                        </p>
+                      )}
                     </div>
 
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div 
+                      ref={messagesContainerRef}
+                      className="flex-1 overflow-y-auto p-4 space-y-4"
+                    >
+                      {/* Load More Button */}
+                      {hasMore && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={loadMoreMessages}
+                            disabled={loadingMore}
+                            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loadingMore ? (
+                              <div className="flex items-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                                Loading more messages...
+                              </div>
+                            ) : (
+                              'Load more messages'
+                            )}
+                          </button>
+                        </div>
+                      )}
+
                       {messages.length === 0 ? (
                         <div className="text-center text-gray-500 py-8">
                           No messages yet. Start the conversation!
                         </div>
                       ) : (
-                        messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex ${
-                              message.sender === 'user' ? 'justify-end' : 'justify-start'
-                            }`}
-                          >
+                        <>
+                          {messages.map((message) => (
                             <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                message.sender === 'user'
-                                  ? 'bg-indigo-600 text-white'
-                                  : 'bg-gray-200 text-gray-900'
+                              key={message.id}
+                              className={`flex ${
+                                message.sender === 'user' ? 'justify-end' : 'justify-start'
                               }`}
                             >
-                              <div className="text-sm">{message.content}</div>
                               <div
-                                className={`text-xs mt-1 ${
+                                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                                   message.sender === 'user'
-                                    ? 'text-indigo-200'
-                                    : 'text-gray-500'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-200 text-gray-900'
                                 }`}
                               >
-                                {new Date(message.timestamp).toLocaleTimeString()}
+                                <div className="text-sm">{message.content}</div>
+                                <div
+                                  className={`text-xs mt-1 ${
+                                    message.sender === 'user'
+                                      ? 'text-indigo-200'
+                                      : 'text-gray-500'
+                                  }`}
+                                >
+                                  {new Date(message.timestamp).toLocaleTimeString()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                          
+                          {/* AI Typing Indicator */}
+                          {aiTyping && (
+                            <div className="flex justify-start">
+                              <div className="bg-gray-200 text-gray-900 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
+                                <div className="flex items-center space-x-2">
+                                  <div className="flex space-x-1">
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                  </div>
+                                  <span className="text-sm text-gray-600">AI is typing...</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
+                      
+                      {/* Invisible div for scrolling to bottom */}
+                      <div ref={messagesEndRef} />
                     </div>
 
                     {/* Message Input */}
                     <MessageInput
                       conversationId={selectedConversation.id}
                       onMessageSent={handleMessageSent}
+                      onFirstMessage={handleFirstMessage}
+                      onTypingStart={handleAiTypingStart}
+                      onTypingStop={handleAiTypingStop}
                     />
                   </>
                 ) : (
@@ -254,6 +465,17 @@ export default function ChatPage() {
             </div>
           </div>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={confirmDeleteConversation}
+          title="Delete Conversation"
+          message={`Are you sure you want to delete "${conversationToDelete?.conversation_topic}"? This action cannot be undone and will delete all messages in this conversation.`}
+          confirmText="Delete Conversation"
+          cancelText="Cancel"
+        />
       </div>
     </ProtectedRoute>
   )

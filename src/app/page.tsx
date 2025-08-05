@@ -1,10 +1,12 @@
 'use client'
 
+// Landing page w/ use redirect to chat or login
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 export default function Home() {
+  // get state of the user
   const { user, loading, signOut } = useAuth()
   const router = useRouter()
 
