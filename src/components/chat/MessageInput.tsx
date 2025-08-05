@@ -125,11 +125,11 @@ export default function MessageInput({
         onMessageSent(decryptedAiMessage)
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending message:', error)
       // Revert the message input if there was an error
       setMessage(userMessage)
-      setValidationError(`Failed to send message: ${error.message || 'Unknown error'}`)
+      setValidationError(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
       setAiTyping(false)

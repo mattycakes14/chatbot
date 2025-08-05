@@ -1,4 +1,4 @@
-// OpenRouter Service - Access multiple LLM models through a single API
+import { createClient } from './supabase'
 
 export interface OpenRouterConfig {
   apiKey: string
@@ -144,38 +144,22 @@ export class OpenRouterService {
     }
   }
 
-  // Add this method to the OpenRouterService class
+  // Validate API key
   async validateApiKey(): Promise<boolean> {
     try {
-      if (!this.config.apiKey) {
-        console.error('OpenRouter API key is not configured')
-        return false
-      }
-
       const response = await fetch(`${this.baseUrl}/models`, {
         headers: {
           'Authorization': `Bearer ${this.config.apiKey}`,
           'Content-Type': 'application/json',
         },
       })
-
-      if (!response.ok) {
-        console.error(`API key validation failed: ${response.status}`)
-        return false
-      }
-
-      return true
-    } catch (error) {
-      console.error('Error validating API key:', error)
+      return response.ok
+    } catch (error: unknown) {
+      console.error('API key validation failed:', error)
       return false
     }
   }
 }
-
-// Remove the old exposed service and replace with secure wrapper
-// export const openRouterService = new OpenRouterService({
-//   apiKey: process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || '',  // ← REMOVE THIS
-// })
 
 // Create a client-side wrapper that calls the secure API route
 export const openRouterService = {
@@ -199,11 +183,11 @@ export const openRouterService = {
       }
 
       return response.json()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('API call error:', error)
       return {
         content: 'Sorry, I encountered an error. Please try again.',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }
   },
