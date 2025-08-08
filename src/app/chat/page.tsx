@@ -209,19 +209,25 @@ export default function ChatPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-900">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-gray-800 border-b border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
-              <h1 className="text-xl font-semibold text-gray-900">Chat Dashboard</h1>
+              <h1 className="text-xl font-semibold text-white">Chat Dashboard</h1>
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-300">
                   Welcome, {user?.email}
                 </span>
+                <a
+                  href="/onboarding"
+                  className="text-sm text-green-400 hover:text-green-300 transition-colors"
+                >
+                  Help
+                </a>
                 <button
                   onClick={handleSignOut}
-                  className="text-sm text-red-600 hover:text-red-800 transition-colors"
+                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
                   disabled={loading}
                 >
                   {loading ? 'Signing out...' : 'Sign out'}
@@ -232,15 +238,15 @@ export default function ChatPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="bg-white rounded-lg shadow-sm border">
+          <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700">
             <div className="flex h-[600px]">
               {/* Left Sidebar - Conversations */}
-              <div className="w-80 border-r border-gray-200 flex flex-col">
+              <div className="w-80 border-r border-gray-700 flex flex-col">
                 {/* New Conversation Button */}
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-700">
                   <button
                     onClick={createNewConversation}
-                    className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
                   >
                     + New Conversation
                   </button>
@@ -249,32 +255,40 @@ export default function ChatPage() {
                 {/* Conversations List */}
                 <div className="flex-1 overflow-y-auto">
                   {loading ? (
-                    <div className="p-4 text-center text-gray-500">
+                    <div className="p-4 text-center text-gray-400">
                       Loading conversations...
                     </div>
                   ) : conversations.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">
-                      No conversations yet. Start a new one!
+                    <div className="p-4 text-center text-gray-400">
+                      <div className="space-y-3">
+                        <p>No conversations yet. Start a new one!</p>
+                        <a
+                          href="/onboarding"
+                          className="inline-block text-sm text-green-400 hover:text-green-300 transition-colors"
+                        >
+                          New to chat? Take the tour →
+                        </a>
+                      </div>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-gray-700">
                       {conversations.map((conversation) => (
                         <div
                           key={conversation.id}
                           className={`group relative ${
                             selectedConversation?.id === conversation.id
-                              ? 'bg-indigo-50 border-r-2 border-indigo-600'
-                              : 'hover:bg-gray-50'
+                              ? 'bg-gray-700 border-r-2 border-green-500'
+                              : 'hover:bg-gray-700'
                           }`}
                         >
                           <button
                             onClick={() => handleConversationSelect(conversation)}
                             className="w-full text-left p-4 transition-colors"
                           >
-                            <div className="font-medium text-gray-900 truncate">
+                            <div className="font-medium text-white truncate">
                               {conversation.conversation_topic}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-400">
                               {new Date(conversation.created_at).toLocaleDateString()}
                             </div>
                           </button>
@@ -284,7 +298,7 @@ export default function ChatPage() {
                               e.stopPropagation()
                               handleDeleteConversation(conversation)
                             }}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-800 p-1"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-1"
                             title="Delete conversation"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,8 +320,8 @@ export default function ChatPage() {
                     <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}>
                       {loadingMore && (
                         <div className="text-center py-2">
-                          <div className="inline-flex items-center space-x-2 text-gray-600">
-                            <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="inline-flex items-center space-x-2 text-gray-400">
+                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                             <span>Loading more messages...</span>
                           </div>
                         </div>
@@ -321,8 +335,8 @@ export default function ChatPage() {
                           <div
                             className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                               message.sender === 'user'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-200 text-gray-800'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-700 text-white'
                             }`}
                           >
                             <div className="text-sm font-semibold mb-1">
@@ -335,14 +349,14 @@ export default function ChatPage() {
 
                       {aiTyping && (
                         <div className="flex justify-start mb-4">
-                          <div className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">
+                          <div className="bg-gray-700 text-white px-4 py-2 rounded-lg">
                             <div className="flex items-center space-x-2">
                               <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                               </div>
-                              <span className="text-sm text-gray-600">Vivian Tran is typing...</span>
+                              <span className="text-sm text-gray-300">Vivian Tran is typing...</span>
                             </div>
                           </div>
                         </div>
@@ -363,7 +377,7 @@ export default function ChatPage() {
                   </>
                 ) : (
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center text-gray-500">
+                    <div className="text-center text-gray-400">
                       <p className="text-lg">Select a conversation to start chatting</p>
                       <p className="text-sm mt-2">Or create a new conversation to begin</p>
                     </div>

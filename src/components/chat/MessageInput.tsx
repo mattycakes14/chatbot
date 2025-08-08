@@ -117,9 +117,9 @@ export default function MessageInput({
   }
 
   return (
-    <div className="flex flex-col space-y-4 p-4 bg-white border-t">
+    <div className="flex flex-col space-y-4 p-4 bg-gray-800 border-t border-gray-700">
       {validationError && (
-        <div className="text-red-500 text-sm bg-red-50 p-2 rounded">
+        <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-800">
           {validationError}
         </div>
       )}
@@ -132,12 +132,12 @@ export default function MessageInput({
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
           disabled={loading}
-          className="text-gray-500 flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 \focus:border-transparent disabled:opacity-50"
+          className="text-white bg-gray-700 flex-1 p-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50 placeholder-gray-400"
         />
         <button
           onClick={sendMessage}
           disabled={loading || !message.trim()}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (
             <div className="flex items-center space-x-2">
@@ -151,7 +151,7 @@ export default function MessageInput({
       </div>
       
       {aiTyping && (
-        <div className="flex items-center space-x-2 text-gray-500 text-sm">
+        <div className="flex items-center space-x-2 text-gray-400 text-sm">
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>

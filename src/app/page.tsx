@@ -13,6 +13,8 @@ export default function Home() {
   useEffect(() => {
     if (!loading) {
       if (user) {
+        // Check if user has completed onboarding by looking for existing conversations
+        // For now, redirect to chat directly - users can access onboarding via Help link
         router.push('/chat')
       } else {
         router.push('/login')
