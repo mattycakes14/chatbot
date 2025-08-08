@@ -26,4 +26,31 @@ export async function createServerComponentClient() {
       },
     }
   )
+}
+
+// For API routes - handle cookies from request
+export function createClient(request?: Request) {
+  const cookieStore = request ? 
+    Object.fromEntries(request.headers.get('cookie')?.split(';').map(c => {
+      const [key, value] = c.trim().split('=')
+      return [key, value]
+    }) || []) : {}
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return Object.entries(cookieStore).map(([name, value]) => ({
+            name,
+            value: value || '',
+          }))
+        },
+        setAll() {
+          // No-op for API routes
+        },
+      },
+    }
+  )
 } 

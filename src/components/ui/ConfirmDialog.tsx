@@ -1,3 +1,4 @@
+// Confirmation dialog for deleting conversations
 'use client'
 
 interface ConfirmDialogProps {

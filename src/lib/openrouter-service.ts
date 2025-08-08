@@ -69,7 +69,7 @@ export class OpenRouterService {
           model,
           messages,
           max_tokens: 1000,
-          temperature: 0.9,
+          temperature: 0.7,
           stream: false,
         }),
       })
@@ -193,14 +193,14 @@ export const openRouterService = {
   },
 
   async callClaude(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
-    return this.callGPT4(messages) // Use GPT-4 for now
+    return this.callGPT4(messages) 
   },
 
   async callGemini(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
-    return this.callGPT4(messages) // Use GPT-4 for now
+    return this.callGPT4(messages) 
   },
 
   async callLlama(messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>) {
-    return this.callGPT4(messages) // Use GPT-4 for now
+    return this.callGPT4(messages) 
   }
 } 

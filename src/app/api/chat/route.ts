@@ -1,103 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rate-limit'
 import { InputSanitizer } from '@/lib/sanitization'
 
 const limiter = rateLimit({
-  interval: 60 * 1000, // 1 minute
+  interval: 60 * 1000,
   uniqueTokenPerInterval: 500,
 })
 
+// FastAPI backend configuration
+const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || 'http://localhost:8000'
+const FASTAPI_API_KEY = process.env.FASTAPI_API_KEY
+
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit by IP
-    await limiter.check(request, 10, 'CHAT_API') // 10 requests per minute
+    // Rate limiting
+    await limiter.check(request, 10, 'LLM_API')
   } catch {
     return NextResponse.json(
-      { error: 'Rate limit exceeded. Please try again later.' }, 
+      { error: 'Rate limit exceeded' },
       { status: 429 }
     )
   }
 
   try {
-    // Validate request
+    const supabase = createClient(request)
     const body = await request.json()
-    const { messages } = body
+    const { conversationId, message, context } = body
 
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Invalid request: messages array required' },
-        { status: 400 }
-      )
+    // Validate input
+    if (!conversationId || !message) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Validate and sanitize each message
-    for (const message of messages) {
-      if (!message.role || !message.content) {
-        return NextResponse.json(
-          { error: 'Invalid message format' },
-          { status: 400 }
-        )
-      }
-
-      // Sanitize message content
-      const { sanitized, isValid, error } = InputSanitizer.sanitizeAndValidate(message.content)
-      
-      if (!isValid) {
-        return NextResponse.json(
-          { error: `Message validation failed: ${error}` },
-          { status: 400 }
-        )
-      }
-
-      // Update message with sanitized content
-      message.content = sanitized
+    // Sanitize message
+    const { sanitized, isValid, error: sanitizeError } = InputSanitizer.sanitizeAndValidate(message)
+    
+    if (!isValid) {
+      return NextResponse.json({ error: `Invalid message: ${sanitizeError}` }, { status: 400 })
     }
 
-    // Call OpenRouter API server-side
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify user owns this conversation
+    const { data: conversation } = await supabase
+      .from('Conversations')
+      .select('user_id')
+      .eq('id', conversationId)
+      .single()
+
+    if (!conversation || conversation.user_id !== user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Get conversation history for context
+    const { data: messages } = await supabase
+      .from('Messages')
+      .select('sender, content, timestamp')
+      .eq('conversation_id', conversationId)
+      .order('timestamp', { ascending: true })
+      .limit(10) // Last 10 messages for context
+
+    // Prepare request to FastAPI backend
+    const fastApiRequest = {
+      prompt: sanitized,
+      user_id: user.id
+    }
+
+    // Call FastAPI backend
+    const fastApiResponse = await fetch(`${FASTAPI_BASE_URL}/query`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': request.headers.get('origin') || '',
-        'X-Title': 'Chatbot App',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: 'openai/gpt-4',
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7,
-        stream: false,
-      }),
+      body: JSON.stringify(fastApiRequest)
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error('OpenRouter API error:', response.status, errorData)
-      
-      return NextResponse.json(
-        { error: `AI service error: ${response.status}` },
-        { status: response.status }
-      )
+    if (!fastApiResponse.ok) {
+      const errorData = await fastApiResponse.json().catch(() => ({}))
+      console.error('FastAPI error:', errorData)
+      return NextResponse.json({ 
+        error: 'LLM service unavailable',
+        details: errorData.error || 'Backend service error'
+      }, { status: fastApiResponse.status })
     }
 
-    const data = await response.json()
-    
-    // Sanitize AI response before returning
-    const { sanitized: sanitizedResponse } = InputSanitizer.sanitizeAndValidate(
-      data.choices[0]?.message?.content || 'No response from AI'
-    )
-    
+    const llmResponse = await fastApiResponse.json()
+
     return NextResponse.json({
-      content: sanitizedResponse,
-      model: data.model,
-      usage: data.usage,
+      response: llmResponse.content || llmResponse.response,
+      metadata: llmResponse.metadata || {},
+      conversation_id: conversationId
     })
-  } catch (error: any) {
-    console.error('API route error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+
+  } catch (error) {
+    console.error('LLM API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 
