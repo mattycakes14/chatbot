@@ -342,7 +342,7 @@ export default function ChatPage() {
                             <div className="text-sm font-semibold mb-1">
                               {message.sender === 'user' ? 'You' : 'Vivian Tran'}
                             </div>
-                            <div className="text-sm">{message.content}</div>
+                            <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                           </div>
                         </div>
                       ))}

@@ -83,6 +83,24 @@ export default function LoginForm() {
             setError(`User created in Auth but failed to create profile: ${profileError.message}`)
             return
           }
+
+          // insert pre-fill user integrations until authentication is complete
+          const services = ["spotify", "google_calendar", "google_docs"]
+          const { error: integrationsError } = await supabase.from('user_integrations').insert(
+            services.map(service => ({
+              user_id: data?.user?.id,
+              created_at: new Date().toISOString(),
+              service_name: service,
+              status: 'pending',
+              updated_at: new Date().toISOString()
+            })) 
+          )
+          
+          if (integrationsError) {
+            console.error('Error creating user integrations:', integrationsError)
+            setError(`User profile created but failed to create integrations: ${integrationsError.message}`)
+            return
+          }
         }
         
         alert('Check your email for the confirmation link!')

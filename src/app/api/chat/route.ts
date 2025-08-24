@@ -92,8 +92,41 @@ export async function POST(request: NextRequest) {
 
     const llmResponse = await fastApiResponse.json()
 
+    // Format the response based on the structure
+    let formattedResponse = 'Sorry, I could not generate a response.'
+    
+    if (llmResponse.result) {
+      // If result contains events (like concert data), format it nicely
+      if (llmResponse.result.events && Array.isArray(llmResponse.result.events)) {
+        const events = llmResponse.result.events
+        const query = llmResponse.result.query || 'Events'
+        const genres = llmResponse.result.genres || []
+        
+        formattedResponse = `Here are the ${query}:\n\n`
+        events.forEach((event: any, index: number) => {
+          formattedResponse += `${index + 1}. **${event.name}**\n`
+          formattedResponse += `   📅 Date: ${event.date}\n`
+          if (event.url) formattedResponse += `   🔗 [Get Tickets](${event.url})\n`
+          formattedResponse += '\n'
+        })
+        
+        if (genres.length > 0) {
+          formattedResponse += `\nGenres: ${genres.join(', ')}`
+        }
+      } else {
+        // For other types of results, convert to string
+        formattedResponse = typeof llmResponse.result === 'string' 
+          ? llmResponse.result 
+          : JSON.stringify(llmResponse.result, null, 2)
+      }
+    } else if (llmResponse.content) {
+      formattedResponse = llmResponse.content
+    } else if (llmResponse.response) {
+      formattedResponse = llmResponse.response
+    }
+
     return NextResponse.json({
-      response: llmResponse.content || llmResponse.response,
+      response: formattedResponse,
       metadata: llmResponse.metadata || {},
       conversation_id: conversationId
     })

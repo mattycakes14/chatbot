@@ -3,7 +3,6 @@
 
 import { useState } from 'react'
 import { Message } from '@/lib/database'
-import { openRouterService } from '@/lib/openrouter-service'
 import { InputSanitizer } from '@/lib/sanitization'
 import { apiClient } from '@/lib/api-client'
 
@@ -61,7 +60,7 @@ export default function MessageInput({
         onFirstMessage(sanitizedUserMessage)
       }
 
-      // Get AI response from OpenRouter
+      // Get AI response from FastAPI backend
       const aiResponse = await getAIResponse(sanitizedUserMessage)
 
       // Sanitize AI response
@@ -95,8 +94,9 @@ export default function MessageInput({
       // Use the Next.js API route to avoid CORS issues
       const response = await apiClient.sendChatMessage(conversationId, userMessage)
       console.log(response)
-      // Return the response from the FastAPI backend
-      return response.response || 'Sorry, I could not generate a response.'
+      
+      // Extract content from the consistent response structure
+      return response.response?.llm_response?.content || 'Sorry, I could not generate a response.'
 
     } catch (error) {
       console.error('Error getting AI response:', error)
