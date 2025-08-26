@@ -15,6 +15,7 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
   const [loading, setLoading] = useState(true)
   const [services, setServices] = useState<string[]>([])
   const [serviceUrls, setServiceUrls] = useState<{ [key: string]: string }>({})
+  const [authIds, setAuthIds] = useState<{ [key: string]: string }>({})
   const router = useRouter()
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
         user_id: user_id,
       })
       setServiceUrls(prev => ({ ...prev, [service]: response.data.auth_url }))
+      setAuthIds(prev => ({ ...prev, [service]: response.data.auth_id }))
     })
   }, [])
 
@@ -81,7 +83,17 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
     }
   }
 
-  const handleAuthorizeAll = () => {
+  const completeIntegration = () => {
+    // fetch authIds first
+    console.log(authIds)
+    services.forEach(async (service) => {
+        const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}/callback`, {
+            auth_id: authIds[service],
+            user_id: user_id,
+        })
+        console.log(response.data)
+    })
+
   }
 
   if (loading) {
@@ -148,7 +160,7 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
             Skip for now
           </button>
           <button
-            onClick={handleAuthorizeAll}
+            onClick={completeIntegration}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           >
             Complete Integration
