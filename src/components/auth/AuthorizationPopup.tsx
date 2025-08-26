@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
-import UserIntegration from './UserIntegration'
 
-export default function LoginForm() {
+export default function AuthorizationPopup() {
   const [email, setEmail] = useState('') // email input
   const [password, setPassword] = useState('') // password input
   const [loading, setLoading] = useState(false) // loading state
@@ -15,10 +14,7 @@ export default function LoginForm() {
   const [emailError, setEmailError] = useState<string | null>(null) // email validation error
   const router = useRouter() // router
   const supabase = createClient() // supabase client
-  const [showAuthPopup, setShowAuthPopup] = useState(false) // authorization popup state
-  const [user_id, setUserId] = useState('') // user id
-  const [pendingServices, setPendingServices] = useState<string[]>([]) // pending services
-  
+
   // Email validation function
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -116,16 +112,13 @@ export default function LoginForm() {
           password,
         })
         if (error) throw error
-          setUserId(data.user?.id)
+        router.push('/chat')
         try {
           const response = await axios.post("http://localhost:8000/auth/userintegrations", {
             email: data.user?.email,
             user_id: data.user?.id,
           })
-          if (response.data.status === "pending") {
-            setPendingServices(response.data.pending_services)
-            setShowAuthPopup(true)
-          }
+          console.log(response.data.status)
         } catch (error) {
           console.error('Error logging in:', error)
         }
@@ -136,12 +129,6 @@ export default function LoginForm() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (showAuthPopup) {
-    return (
-      <UserIntegration onClose={() => setShowAuthPopup(false)} email={email} user_id={user_id} pendingServices={pendingServices} />
-    )
   }
 
   return (
