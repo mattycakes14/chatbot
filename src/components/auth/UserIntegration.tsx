@@ -8,26 +8,26 @@ interface UserIntegrationProps {
   onClose?: () => void
   pendingServices: string[]
   email: string
-  user_id: string
 }
 
-export default function UserIntegration({ onClose, email, user_id, pendingServices }: UserIntegrationProps) {    
+export default function UserIntegration({ onClose, email, pendingServices }: UserIntegrationProps) {    
   const [loading, setLoading] = useState(true)
   const [services, setServices] = useState<string[]>([])
   const [serviceUrls, setServiceUrls] = useState<{ [key: string]: string }>({})
   const [authIds, setAuthIds] = useState<{ [key: string]: string }>({})
+  const [successes, setSuccesses] = useState<{ [key: string]: boolean }>({})
   const router = useRouter()
-
   useEffect(() => {
     setServices(pendingServices)
     setLoading(false)
 
     // get urls for services
     pendingServices.forEach(async (service) => {
+    
       const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}`, {
         email: email,
-        user_id: user_id,
       })
+      console.log(response.data.auth_url)
       setServiceUrls(prev => ({ ...prev, [service]: response.data.auth_url }))
       setAuthIds(prev => ({ ...prev, [service]: response.data.auth_id }))
     })
@@ -76,11 +76,12 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
   }
 
   const handleSkip = () => {
-    if (onClose) {
-      onClose()
-    } else {
-      router.push('/chat')
-    }
+    console.log(serviceUrls)
+    // if (onClose) {
+    //   onClose()
+    // } else {
+    //   router.push('/chat')
+    // }
   }
 
   const completeIntegration = () => {
@@ -89,11 +90,18 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
     services.forEach(async (service) => {
         const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}/callback`, {
             auth_id: authIds[service],
-            user_id: user_id,
+            email: email,
         })
-        console.log(response.data)
+        setSuccesses(prev => ({ ...prev, [service]: response.data.status === 'success' }))
     })
 
+    if (Object.values(successes).every(success => success)) {
+      if (onClose) {
+        onClose()
+      } else {
+        router.push('/chat')
+      }
+    }
   }
 
   if (loading) {

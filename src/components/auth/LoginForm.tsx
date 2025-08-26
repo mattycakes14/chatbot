@@ -93,8 +93,9 @@ export default function LoginForm() {
           const services = ["spotify", "googlecalendar", "googledocs"]
           const { error: integrationsError } = await supabase.from('user_integrations').insert(
             services.map(service => ({
-              user_id: data?.user?.id,
+              email: email,
               created_at: new Date().toISOString(),
+              auth_id: null,
               service_name: service,
               status: 'pending',
               updated_at: new Date().toISOString()
@@ -120,11 +121,12 @@ export default function LoginForm() {
         try {
           const response = await axios.post("http://localhost:8000/auth/userintegrations", {
             email: data.user?.email,
-            user_id: data.user?.id,
           })
           if (response.data.status === "pending") {
             setPendingServices(response.data.pending_services)
             setShowAuthPopup(true)
+          }else{
+            router.push('/chat')
           }
         } catch (error) {
           console.error('Error logging in:', error)
@@ -140,7 +142,7 @@ export default function LoginForm() {
 
   if (showAuthPopup) {
     return (
-      <UserIntegration onClose={() => setShowAuthPopup(false)} email={email} user_id={user_id} pendingServices={pendingServices} />
+      <UserIntegration onClose={() => setShowAuthPopup(false)} email={email} pendingServices={pendingServices} />
     )
   }
 
