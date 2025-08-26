@@ -14,11 +14,21 @@ interface UserIntegrationProps {
 export default function UserIntegration({ onClose, email, user_id, pendingServices }: UserIntegrationProps) {    
   const [loading, setLoading] = useState(true)
   const [services, setServices] = useState<string[]>([])
+  const [serviceUrls, setServiceUrls] = useState<{ [key: string]: string }>({})
   const router = useRouter()
 
   useEffect(() => {
     setServices(pendingServices)
     setLoading(false)
+
+    // get urls for services
+    pendingServices.forEach(async (service) => {
+      const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}`, {
+        email: email,
+        user_id: user_id,
+      })
+      setServiceUrls(prev => ({ ...prev, [service]: response.data.auth_url }))
+    })
   }, [])
 
   // switch case for rendering the service icon
@@ -63,29 +73,12 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
     }
   }
 
-
-  const handleAuthorize = async (service: string) => {
-    console.log(`Authorizing ${service}...`)
-
-    try {
-      const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}`, {
-        email: email,
-        user_id: user_id,
-      })
-      console.log(response.data)
-      
-    } catch (error) {
-      console.error(`Error authorizing ${service}:`, error)
-    }
-  }
-
   const handleSkip = () => {
-    console.log(services)
-    // if (onClose) {
-    //   onClose()
-    // } else {
-    //   router.push('/chat')
-    // }
+    if (onClose) {
+      onClose()
+    } else {
+      router.push('/chat')
+    }
   }
 
   const handleAuthorizeAll = () => {
@@ -138,7 +131,7 @@ export default function UserIntegration({ onClose, email, user_id, pendingServic
                 </p>
               </div>
               <button
-                onClick={() => handleAuthorize(service)}
+                onClick={() => window.open(serviceUrls[service], '_blank')}
                 className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
               >
                 Connect

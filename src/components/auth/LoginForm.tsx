@@ -90,7 +90,7 @@ export default function LoginForm() {
           }
 
           // insert pre-fill user integrations until authentication is complete
-          const services = ["spotify", "google_calendar", "google_docs"]
+          const services = ["spotify", "googlecalendar", "googledocs"]
           const { error: integrationsError } = await supabase.from('user_integrations').insert(
             services.map(service => ({
               user_id: data?.user?.id,
