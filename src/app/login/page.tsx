@@ -1,5 +1,12 @@
-import LoginForm from '@/components/auth/LoginForm'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  return <LoginForm />
-} 
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/onboarding')
+  }, [router])
+  return null
+}

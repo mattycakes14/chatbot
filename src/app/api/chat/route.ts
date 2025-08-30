@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify(fastApiRequest)
     })
-
+    console.log(fastApiResponse)
     if (!fastApiResponse.ok) {
       const errorData = await fastApiResponse.json().catch(() => ({}))
       console.error('FastAPI error:', errorData)
@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
 
     const llmResponse = await fastApiResponse.json()
 
+    console.log(llmResponse)
     // Format the response based on the structure
     let formattedResponse = 'Sorry, I could not generate a response.'
     
