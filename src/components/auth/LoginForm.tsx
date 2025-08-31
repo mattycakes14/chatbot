@@ -161,25 +161,26 @@ export default function LoginForm({
   }
 
   const content = (
-    <div className="w-full space-y-8">
-      <div>
-        <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900">
-          {isSignUp ? 'Create your account' : 'Sign in to your account'}
+    <div className="w-full space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2">
+          {isSignUp ? 'Create your account' : 'Welcome back'}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="text-slate-600">
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
           >
             {isSignUp ? 'Sign in' : 'Sign up'}
           </button>
         </p>
       </div>
-      <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-        <div className="rounded-md shadow-sm -space-y-px">
+      
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="space-y-4">
           <div>
-            <label htmlFor="email-address" className="sr-only">
+            <label htmlFor="email-address" className="block text-sm font-medium text-slate-700 mb-2">
               Email address
             </label>
             <input
@@ -188,12 +189,12 @@ export default function LoginForm({
               type="email"
               autoComplete="email"
               required
-              className={`appearance-none rounded-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm ${
+              className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-slate-400 ${
                 emailError 
                   ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
-                  : 'border-gray-300'
+                  : 'hover:border-slate-300'
               }`}
-              placeholder="Email address"
+              placeholder="Enter your email"
               value={email}
               onChange={handleEmailChange}
               onBlur={() => {
@@ -202,9 +203,13 @@ export default function LoginForm({
                 }
               }}
             />
+            {emailError && (
+              <p className="text-red-500 text-sm mt-1">{emailError}</p>
+            )}
           </div>
+          
           <div>
-            <label htmlFor="password" className="sr-only">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
               Password
             </label>
             <input
@@ -213,38 +218,34 @@ export default function LoginForm({
               type="password"
               autoComplete="current-password"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Password"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 placeholder-slate-400 hover:border-slate-300"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
         </div>
 
-        {emailError && (
-          <div className="text-red-600 text-sm text-center">{emailError}</div>
-        )}
-
         {error && (
-          <div className="text-red-600 text-sm text-center">{error}</div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
         )}
 
-        <div>
-          <button
-            type="submit"
-            disabled={loading || !isFormValid()}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                {isSignUp ? 'Creating account...' : 'Signing in...'}
-              </div>
-            ) : (
-              isSignUp ? 'Sign up' : 'Sign in'
-            )}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading || !isFormValid()}
+          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-lg"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
+              {isSignUp ? 'Creating account...' : 'Signing in...'}
+            </div>
+          ) : (
+            isSignUp ? 'Create Account' : 'Sign In'
+          )}
+        </button>
       </form>
     </div>
   )
@@ -254,8 +255,10 @@ export default function LoginForm({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">{content}</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200/60 p-8">
+        {content}
+      </div>
     </div>
   )
 }
