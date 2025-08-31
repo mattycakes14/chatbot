@@ -24,7 +24,7 @@ export default function UserIntegration({ onClose, email, pendingServices }: Use
     // get urls for services
     pendingServices.forEach(async (service) => {
     
-      const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}`, {
+      const response = await axios.post(`https://langchain-agent-backend-production.up.railway.app/auth/userintegrations/${service}`, {
         email: email,
       })
       console.log(response.data.auth_url)
@@ -88,7 +88,7 @@ export default function UserIntegration({ onClose, email, pendingServices }: Use
     // fetch authIds first
     console.log(authIds)
     services.forEach(async (service) => {
-        const response = await axios.post(`http://localhost:8000/auth/userintegrations/${service}/callback`, {
+        const response = await axios.post(`https://langchain-agent-backend-production.up.railway.app/auth/userintegrations/${service}/callback`, {
             auth_id: authIds[service],
             email: email,
         })

@@ -132,7 +132,7 @@ export default function LoginForm({
           router.push('/chat')
         } else {
           try {
-            const response = await axios.post("http://localhost:8000/auth/userintegrations", {
+            const response = await axios.post("https://langchain-agent-backend-production.up.railway.app/auth/userintegrations", {
               email: data.user?.email,
             })
             if (response.data.status === "pending") {

@@ -93,10 +93,18 @@ export default function MessageInput({
     try {
       // Use the Next.js API route to avoid CORS issues
       const response = await apiClient.sendChatMessage(conversationId, userMessage)
-      console.log(response)
+      console.log('Full API response:', response)
       
-      // Extract content from the consistent response structure
-      return response.response?.llm_response?.content || 'Sorry, I could not generate a response.'
+      // Extract content from the response structure
+      // The API route now returns { response: "string from FastAPI" }
+      if (response.response) {
+        return response.response
+      } else if (typeof response === 'string') {
+        return response
+      }
+      
+      console.warn('Unexpected response structure:', response)
+      return 'Sorry, I could not generate a response.'
 
     } catch (error) {
       console.error('Error getting AI response:', error)
@@ -117,14 +125,14 @@ export default function MessageInput({
   }
 
   return (
-    <div className="flex flex-col space-y-4 p-4 bg-gray-800 border-t border-gray-700">
+    <div className="p-6">
       {validationError && (
-        <div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-800">
+        <div className="mb-4 text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">
           {validationError}
         </div>
       )}
       
-      <div className="flex space-x-2">
+      <div className="flex space-x-3">
         <input
           type="text"
           value={message}
@@ -132,29 +140,34 @@ export default function MessageInput({
           onKeyPress={handleKeyPress}
           placeholder="Type your message..."
           disabled={loading}
-          className="text-white bg-gray-700 flex-1 p-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50 placeholder-gray-400"
+          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 placeholder-slate-400 transition-all duration-200 hover:border-slate-300"
         />
         <button
           onClick={sendMessage}
           disabled={loading || !message.trim()}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:hover:shadow-lg"
         >
           {loading ? (
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>{aiTyping ? 'Vivian Tran is typing...' : 'Sending...'}</span>
+              <span className="hidden sm:inline">{aiTyping ? 'AI is typing...' : 'Sending...'}</span>
             </div>
           ) : (
-            'Send'
+            <div className="flex items-center space-x-2">
+              <span>Send</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
           )}
         </button>
       </div>
       
       {aiTyping && (
-        <div className="flex items-center space-x-2 text-gray-400 text-sm">
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        <div className="flex items-center space-x-2 text-slate-500 text-sm mt-3">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
           <span>Vivian Tran is thinking...</span>
         </div>
       )}

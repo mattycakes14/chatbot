@@ -9,7 +9,7 @@ const limiter = rateLimit({
 })
 
 // FastAPI backend configuration
-const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || 'http://localhost:8000'
+const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || 'https://langchain-agent-backend-production.up.railway.app'
 const FASTAPI_API_KEY = process.env.FASTAPI_API_KEY
 
 export async function POST(request: NextRequest) {
@@ -90,45 +90,27 @@ export async function POST(request: NextRequest) {
       }, { status: fastApiResponse.status })
     }
 
-    const llmResponse = await fastApiResponse.json()
+    // Since FastAPI returns just a plain string, get it as text
+    const llmResponse = await fastApiResponse.text()
 
-    console.log(llmResponse)
-    // Format the response based on the structure
-    let formattedResponse = 'Sorry, I could not generate a response.'
+    console.log('FastAPI response (string):', llmResponse)
     
-    if (llmResponse.result) {
-      // If result contains events (like concert data), format it nicely
-      if (llmResponse.result.events && Array.isArray(llmResponse.result.events)) {
-        const events = llmResponse.result.events
-        const query = llmResponse.result.query || 'Events'
-        const genres = llmResponse.result.genres || []
-        
-        formattedResponse = `Here are the ${query}:\n\n`
-        events.forEach((event: any, index: number) => {
-          formattedResponse += `${index + 1}. **${event.name}**\n`
-          formattedResponse += `   📅 Date: ${event.date}\n`
-          if (event.url) formattedResponse += `   🔗 [Get Tickets](${event.url})\n`
-          formattedResponse += '\n'
-        })
-        
-        if (genres.length > 0) {
-          formattedResponse += `\nGenres: ${genres.join(', ')}`
-        }
-      } else {
-        // For other types of results, convert to string
-        formattedResponse = typeof llmResponse.result === 'string' 
-          ? llmResponse.result 
-          : JSON.stringify(llmResponse.result, null, 2)
-      }
-    } else if (llmResponse.content) {
-      formattedResponse = llmResponse.content
-    } else if (llmResponse.response) {
-      formattedResponse = llmResponse.response
-    }
+    // Parse escape sequences (like \n, \t, etc.) from the string
+    let formattedResponse = llmResponse || 'Sorry, I could not generate a response.'
+    
+    // Remove surrounding quotes if they exist
+    formattedResponse = formattedResponse.replace(/^["']|["']$/g, '')
+    
+    // Handle common escape sequences
+    formattedResponse = formattedResponse
+      .replace(/\\n/g, '\n')        // Convert \n to actual newlines
+      .replace(/\\t/g, '\t')        // Convert \t to actual tabs
+      .replace(/\\r/g, '\r')        // Convert \r to carriage returns
+      .replace(/\\"/g, '"')         // Convert \" to actual quotes
+      .replace(/\\\\/g, '\\')       // Convert \\ to actual backslashes
 
     return NextResponse.json({
       response: formattedResponse,
-      metadata: llmResponse.metadata || {},
       conversation_id: conversationId
     })
 
