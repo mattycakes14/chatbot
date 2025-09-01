@@ -163,9 +163,6 @@ export default function LoginForm({
   const content = (
     <div className="w-full space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">
-          {isSignUp ? 'Create your account' : 'Welcome back'}
-        </h2>
         <p className="text-slate-600">
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
