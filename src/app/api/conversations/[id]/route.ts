@@ -9,7 +9,7 @@ const limiter = rateLimit({
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Rate limiting
@@ -23,7 +23,7 @@ export async function DELETE(
 
   try {
     const supabase = createClient()
-    const conversationId = await params.id
+    const { id: conversationId } = await params
   
 
     // Get authenticated user
@@ -75,7 +75,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Rate limiting
@@ -89,7 +89,7 @@ export async function PATCH(
 
   try {
     const supabase = createClient()
-    const conversationId = params.id
+    const { id: conversationId } = await params
     const body = await request.json()
     const { topic } = body
 
